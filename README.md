@@ -57,7 +57,7 @@ sudo apt install python3 python3-venv python3-pip postgresql postgresql-contrib
 
 ```bash
 # Clone the repository
-git clone https://github.com/lalitp-dev/LibraryManagement.git
+git clone https://github.com/lalitp-dev/librarymanagement.git
 cd library-management-system
 
 # Create and activate a virtual environment
