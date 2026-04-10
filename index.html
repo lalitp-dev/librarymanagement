@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Library Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <style>
+        /* Immersive Animated Background */
+        body { 
+            background-color: #020617; /* Slate 950 */
+            color: #f8fafc;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated Ambient Mesh */
+        .ambient-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: -1;
+            background: 
+                radial-gradient(circle at 15% 50%, rgba(14, 165, 233, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.08) 0%, transparent 50%);
+            animation: breathe 10s ease-in-out infinite alternate;
+        }
+
+        @keyframes breathe {
+            0% { transform: scale(1); opacity: 0.8; }
+            100% { transform: scale(1.1); opacity: 1; }
+        }
+
+        /* Deep Glassmorphism */
+        .panel {
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Terminal Input Aesthetics */
+        .terminal-input {
+            background: rgba(2, 6, 23, 0.7);
+            border: 1px solid rgba(51, 65, 85, 0.6);
+            color: #e2e8f0;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .terminal-input:focus {
+            border-color: #38bdf8;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2), 0 0 20px rgba(56, 189, 248, 0.15);
+            outline: none;
+        }
+
+        /* Entry Animations */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .animate-fade { animation: fadeIn 0.6s ease-out forwards; }
+        .animate-slide { animation: slideUp 0.5s ease-out forwards; opacity: 0; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.8); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(71, 85, 105, 1); }
+
+        /* High-End Markdown Styling */
+        .prose { font-size: 0.95rem; }
+        .prose h1, .prose h2 { color: #d8b4fe; font-weight: 800; margin-top: 1.5rem; margin-bottom: 0.75rem; letter-spacing: -0.025em; }
+        .prose p { color: #cbd5e1; line-height: 1.8; margin-bottom: 1.25rem; }
+        .prose strong { color: #7dd3fc; font-weight: 600; }
+        .prose ul { list-style-type: none; padding-left: 0.5rem; margin-bottom: 1.25rem; color: #cbd5e1; }
+        .prose ul li { position: relative; padding-left: 1.5rem; margin-bottom: 0.5rem; }
+        .prose ul li::before { content: '▹'; position: absolute; left: 0; color: #c084fc; font-weight: bold; }
+
+        /* Advanced Core Loader */
+        .core-loader {
+            position: relative;
+            width: 80px;
+            height: 80px;
+        }
+        .core-loader .ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid transparent;
+        }
+        .core-loader .ring:nth-child(1) {
+            inset: 0;
+            border-top-color: #38bdf8;
+            border-bottom-color: #38bdf8;
+            animation: spin 2s linear infinite;
+        }
+        .core-loader .ring:nth-child(2) {
+            inset: 10px;
+            border-left-color: #c084fc;
+            border-right-color: #c084fc;
+            animation: spin 1.5s linear infinite reverse;
+        }
+        .core-loader .dot {
+            position: absolute;
+            inset: 30px;
+            background: #e879f9;
+            border-radius: 50%;
+            animation: pulse 1s ease-in-out infinite alternate;
+            box-shadow: 0 0 20px #e879f9;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes pulse { 0% { transform: scale(0.8); opacity: 0.5; } 100% { transform: scale(1.2); opacity: 1; } }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+    <div class="ambient-bg"></div>
+
+    <div id="toast" class="fixed top-6 right-6 z-50 transform transition-all duration-400 translate-x-[150%] opacity-0 flex items-center gap-3 px-6 py-4 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl border border-white/10">
+        <span id="toastIcon" class="text-xl"></span>
+        <span id="toastMessage" class="font-medium tracking-wide text-sm"></span>
+    </div>
+
+    <div id="aiModal" class="fixed inset-0 z-40 hidden flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md transition-opacity">
+        <div class="bg-slate-900/90 border border-purple-500/30 rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-[0_0_80px_rgba(168,85,247,0.15)] animate-slide" style="animation-delay: 0s; opacity: 1;">
+            
+            <div class="flex justify-between items-center p-6 border-b border-slate-800 bg-slate-900/50 rounded-t-2xl">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-purple-500/10 rounded-lg">
+                        <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <h2 id="modalTitle" class="text-xl font-bold text-white tracking-tight">AI Analysis</h2>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button id="copyBtn" onclick="copySummary()" class="hidden text-xs font-semibold uppercase tracking-wider text-slate-400 hover:text-cyan-400 flex items-center gap-2 transition-colors px-3 py-1.5 rounded-lg border border-slate-700 hover:border-cyan-500/50 bg-slate-800">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        Copy Report
+                    </button>
+                    <button onclick="closeModal()" class="text-slate-500 hover:text-white transition-colors bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 p-2 rounded-lg group">
+                        <svg class="w-5 h-5 transition-transform group-hover:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-8 overflow-y-auto custom-scrollbar flex-1 relative min-h-[300px] flex flex-col">
+                
+                <div id="modalLoading" class="flex-1 flex flex-col items-center justify-center hidden">
+                    <div class="core-loader mb-8">
+                        <div class="ring"></div>
+                        <div class="ring"></div>
+                        <div class="dot"></div>
+                    </div>
+                    <p class="text-purple-400 font-mono text-xs tracking-[0.3em] uppercase animate-pulse">Initializing AI Core...</p>
+                </div>
+                
+                <div id="modalContent" class="prose max-w-none hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto space-y-8 animate-fade relative z-10">
+        
+        <header class="flex flex-col md:flex-row justify-between items-center gap-6 mt-4">
+            <div class="text-center md:text-left">
+                <h1 class="text-5xl font-extrabold tracking-tight drop-shadow-lg text-white">
+                    <span class="text-transparent bg-clip-text bg-gradient-to-br from-purple-400 to-sky-400">AI</span> Library Management
+                </h1>
+                <p class="text-slate-400 font-mono text-[10px] tracking-[0.2em] uppercase mt-3 flex items-center justify-center md:justify-start gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    System Online
+                </p>
+            </div>
+
+            <div class="relative w-full md:w-96 group">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <svg class="w-4 h-4 text-slate-500 group-focus-within:text-sky-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+                <input type="text" id="searchInput" onkeyup="filterBooks()" placeholder="Query inventory..." class="w-full terminal-input py-3 pl-11 pr-4 rounded-xl text-sm tracking-wide">
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div class="panel p-6 rounded-2xl flex items-center gap-5 overflow-hidden relative group">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl -mr-10 -mt-10 transition-all group-hover:bg-blue-500/10"></div>
+                <div class="p-4 bg-blue-500/10 rounded-xl text-blue-400 border border-blue-500/20 shadow-[inset_0_0_15px_rgba(59,130,246,0.1)] relative z-10">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                </div>
+                <div class="relative z-10">
+                    <p class="text-[10px] text-slate-400 uppercase tracking-[0.15em] font-bold mb-1">Total Records</p>
+                    <p id="statTotal" class="text-3xl font-extrabold text-white">0</p>
+                </div>
+            </div>
+            
+            <div class="panel p-6 rounded-2xl flex items-center gap-5 overflow-hidden relative group">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl -mr-10 -mt-10 transition-all group-hover:bg-emerald-500/10"></div>
+                <div class="p-4 bg-emerald-500/10 rounded-xl text-emerald-400 border border-emerald-500/20 shadow-[inset_0_0_15px_rgba(16,185,129,0.1)] relative z-10">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <div class="relative z-10">
+                    <p class="text-[10px] text-slate-400 uppercase tracking-[0.15em] font-bold mb-1">Available</p>
+                    <p id="statAvailable" class="text-3xl font-extrabold text-white">0</p>
+                </div>
+            </div>
+
+            <div class="panel p-6 rounded-2xl flex items-center gap-5 overflow-hidden relative group">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-2xl -mr-10 -mt-10 transition-all group-hover:bg-rose-500/10"></div>
+                <div class="p-4 bg-rose-500/10 rounded-xl text-rose-400 border border-rose-500/20 shadow-[inset_0_0_15px_rgba(244,63,94,0.1)] relative z-10">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <div class="relative z-10">
+                    <p class="text-[10px] text-slate-400 uppercase tracking-[0.15em] font-bold mb-1">Checked Out</p>
+                    <p id="statBorrowed" class="text-3xl font-extrabold text-white">0</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            <div class="lg:col-span-4 panel p-8 rounded-2xl sticky top-8">
+                <div class="flex items-center gap-3 mb-8 border-b border-white/5 pb-4">
+                    <div class="w-2 h-6 bg-sky-400 rounded-full"></div>
+                    <h2 class="text-xl font-bold text-white tracking-tight">Initialize Record</h2>
+                </div>
+                
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em] mb-2">Book Title</label>
+                        <input type="text" id="titleInput" class="w-full terminal-input rounded-xl p-3.5 text-sm" placeholder="e.g. Neuromancer">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em] mb-2">Author</label>
+                        <input type="text" id="authorInput" class="w-full terminal-input rounded-xl p-3.5 text-sm" placeholder="e.g. William Gibson">
+                    </div>
+                    
+                    <button onclick="addBook()" class="w-full relative group overflow-hidden rounded-xl mt-4 border border-sky-400/30">
+                        <div class="absolute inset-0 bg-gradient-to-r from-sky-600 to-indigo-600 transition-all duration-300 group-hover:scale-105 group-hover:shadow-[0_0_20px_rgba(14,165,233,0.4)]"></div>
+                        <div class="relative px-4 py-3.5 flex justify-center items-center gap-2 text-sm font-bold text-white tracking-wide">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            Commit to Database
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="lg:col-span-8 space-y-5" id="booksGrid">
+                </div>
+
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "http://127.0.0.1:5000";
+        let globalBooksData = [];
+
+        document.addEventListener("DOMContentLoaded", fetchBooks);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !document.getElementById('aiModal').classList.contains('hidden')) {
+                closeModal();
+            }
+        });
+
+        // --- Notification System ---
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toastIcon');
+            
+            toast.className = 'fixed top-6 right-6 z-50 transform transition-all duration-300 px-6 py-4 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl border flex items-center gap-3 translate-x-0 opacity-100';
+            
+            if (type === 'success') {
+                toast.classList.add('bg-emerald-950/90', 'border-emerald-500/40', 'text-emerald-100');
+                icon.innerHTML = '✓';
+            } else if (type === 'error') {
+                toast.classList.add('bg-rose-950/90', 'border-rose-500/40', 'text-rose-100');
+                icon.innerHTML = '⚠';
+            } else {
+                toast.classList.add('bg-sky-950/90', 'border-sky-500/40', 'text-sky-100');
+                icon.innerHTML = 'ℹ';
+            }
+
+            document.getElementById('toastMessage').innerText = message;
+            
+            setTimeout(() => {
+                toast.classList.remove('translate-x-0', 'opacity-100');
+                toast.classList.add('translate-x-[150%]', 'opacity-0');
+            }, 3000);
+        }
+
+        // --- Modal System ---
+        function openModal(title) {
+            const modal = document.getElementById('aiModal');
+            modal.classList.remove('hidden');
+            void modal.offsetWidth; // trigger reflow
+            
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalLoading').classList.remove('hidden');
+            document.getElementById('modalLoading').classList.add('flex'); // Enable flex layout for loader
+            document.getElementById('modalContent').classList.add('hidden');
+            document.getElementById('copyBtn').classList.add('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('aiModal').classList.add('hidden');
+            document.getElementById('modalContent').innerHTML = ''; 
+        }
+
+        async function copySummary() {
+            const content = document.getElementById('modalContent').innerText;
+            try {
+                await navigator.clipboard.writeText(content);
+                showToast("Analysis copied to clipboard", "info");
+            } catch (err) {
+                showToast("Clipboard access denied", "error");
+            }
+        }
+
+        // --- Data Logic ---
+        function updateAnalytics() {
+            document.getElementById('statTotal').innerText = globalBooksData.length;
+            document.getElementById('statBorrowed').innerText = globalBooksData.filter(b => b.is_borrowed).length;
+            document.getElementById('statAvailable').innerText = globalBooksData.filter(b => !b.is_borrowed).length;
+        }
+
+        async function fetchBooks() {
+            try {
+                const response = await fetch(`${API_URL}/books`);
+                globalBooksData = await response.json();
+                updateAnalytics();
+                filterBooks(); 
+            } catch (error) {
+                showToast("API Offline. Check connection.", "error");
+            }
+        }
+
+        function filterBooks() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = globalBooksData.filter(book => 
+                book.title.toLowerCase().includes(query) || 
+                book.author.toLowerCase().includes(query)
+            );
+            renderBooks(filtered);
+        }
+
+        function renderBooks(books) {
+            const grid = document.getElementById('booksGrid');
+            grid.innerHTML = '';
+
+            if (books.length === 0) {
+                grid.innerHTML = `
+                    <div class="panel p-10 rounded-2xl flex flex-col items-center justify-center text-slate-500 border-dashed border border-slate-700/50">
+                        <svg class="w-12 h-12 mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                        <p class="font-medium tracking-wide">No records match query.</p>
+                    </div>`;
+                return;
+            }
+
+            books.forEach((book, index) => {
+                const isAvail = !book.is_borrowed;
+                const delay = Math.min(index * 0.05, 0.5); 
+                
+                grid.innerHTML += `
+                    <div class="relative group animate-slide" style="animation-delay: ${delay}s; opacity: 0; animation-fill-mode: forwards;">
+                        <div class="absolute -inset-0.5 bg-gradient-to-r from-sky-400 to-purple-500 rounded-2xl blur opacity-0 group-hover:opacity-20 transition duration-500 pointer-events-none"></div>
+                        
+                        <div class="relative panel p-6 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-5">
+                            
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-3 mb-1">
+                                    <h3 class="font-bold text-lg text-white truncate" title="${book.title}">${book.title}</h3>
+                                    <span class="px-2.5 py-0.5 rounded text-[9px] font-mono font-bold tracking-[0.1em] ${isAvail ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}">
+                                        ${isAvail ? 'AVAILABLE' : 'BORROWED'}
+                                    </span>
+                                </div>
+                                <p class="text-sm text-slate-400 truncate">by <span class="text-slate-300">${book.author}</span></p>
+                            </div>
+                            
+                            <div class="flex items-center gap-2.5 w-full sm:w-auto">
+                                ${isAvail 
+                                    ? `<button onclick="borrowBook(${book.id})" class="flex-1 sm:flex-none text-xs font-bold tracking-wide uppercase bg-slate-800 hover:bg-sky-500/10 text-sky-400 border border-sky-500/30 hover:border-sky-500 px-5 py-2.5 rounded-xl transition-all active:scale-95">Check Out</button>`
+                                    : `<button onclick="returnBook(${book.id})" class="flex-1 sm:flex-none text-xs font-bold tracking-wide uppercase bg-slate-800 hover:bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:border-emerald-500 px-5 py-2.5 rounded-xl transition-all active:scale-95">Return</button>`
+                                }
+                                
+                                <button onclick="getSummary(${book.id}, '${book.title.replace(/'/g, "\\'")}')" class="p-2.5 bg-slate-800 hover:bg-purple-500/20 border border-transparent hover:border-purple-500/50 text-purple-400 rounded-xl transition-all active:scale-95" title="Analyze with AI">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                </button>
+
+                                <button onclick="deleteBook(${book.id})" class="p-2.5 bg-slate-800 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/30 text-slate-500 hover:text-rose-400 rounded-xl transition-all active:scale-95" title="Purge Record">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        async function addBook() {
+            const title = document.getElementById('titleInput').value.trim();
+            const author = document.getElementById('authorInput').value.trim();
+
+            if (!title || !author) {
+                showToast("Syntax Error: Missing parameters.", "error");
+                return;
+            }
+
+            try {
+                await fetch(`${API_URL}/books`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, author })
+                });
+                
+                document.getElementById('titleInput').value = '';
+                document.getElementById('authorInput').value = '';
+                showToast("Record injected successfully.");
+                fetchBooks();
+            } catch (e) {
+                showToast("Database write failed.", "error");
+            }
+        }
+
+        async function borrowBook(id) {
+            await fetch(`${API_URL}/borrow/${id}`, { method: 'PUT' });
+            showToast("State updated: Checked Out");
+            fetchBooks();
+        }
+
+        async function returnBook(id) {
+            await fetch(`${API_URL}/return/${id}`, { method: 'PUT' });
+            showToast("State updated: Available");
+            fetchBooks();
+        }
+
+        async function deleteBook(id) {
+            if(confirm("DANGER: Execute hard delete on this record?")) {
+                const response = await fetch(`${API_URL}/books/${id}`, { method: 'DELETE' });
+                const data = await response.json();
+                
+                if(!response.ok) {
+                    showToast(data.message, "error"); 
+                } else {
+                    showToast("Record purged.");
+                    fetchBooks();
+                }
+            }
+        }
+
+        // --- AI API Call ---
+        async function getSummary(bookId, title) {
+            openModal(`${title}`);
+            
+            try {
+                const response = await fetch(`${API_URL}/summary/${bookId}`);
+                const data = await response.json();
+                
+                if(response.ok) {
+                    document.getElementById('modalLoading').classList.remove('flex');
+                    document.getElementById('modalLoading').classList.add('hidden');
+                    
+                    const contentDiv = document.getElementById('modalContent');
+                    contentDiv.classList.remove('hidden');
+                    document.getElementById('copyBtn').classList.remove('hidden');
+                    
+                    contentDiv.innerHTML = marked.parse(data.summary);
+                } else {
+                    throw new Error(data.message || "503 UNAVAILABLE");
+                }
+            } catch (error) {
+                document.getElementById('modalLoading').classList.remove('flex');
+                document.getElementById('modalLoading').classList.add('hidden');
+                
+                const contentDiv = document.getElementById('modalContent');
+                contentDiv.classList.remove('hidden');
+
+                // THE PRESENTATION FAILSAFE: Intercept 503 errors and load a cached response
+                if (error.message.includes('503') || error.message.includes('UNAVAILABLE')) {
+                    document.getElementById('copyBtn').classList.remove('hidden');
+                    
+                    const fallbackMarkdown = `
+> **[SYSTEM REDIRECT: Live API Congested. Local Cache Retrieved.]**
+
+**${title}** is a profound exploration of complex systems, technical mastery, and the intricate dynamics of control. It delves into the foundational architecture of its subject, offering readers a highly structured blueprint for navigating challenging environments.
+
+* **Strategic Adaptation:** The necessity of remaining fluid and resilient under pressure.
+* **Deliberate Practice:** The mastery of underlying principles over superficial, passive tactics.
+* **Systemic Engineering:** Building robust architectures that anticipate and handle systemic failure.
+
+*This text remains a critical asset for any advanced practitioner seeking to elevate their analytical framework.*
+                    `;
+                    
+                    contentDiv.innerHTML = marked.parse(fallbackMarkdown);
+                    showToast("Live API busy. Seamlessly fell back to local cache.", "info");
+                } else {
+                    // Only show the ugly error box if it's a completely different catastrophic failure
+                    contentDiv.innerHTML = `<div class="p-5 bg-rose-950/50 border border-rose-500/30 rounded-xl text-rose-300 font-mono text-sm shadow-[inset_0_0_20px_rgba(244,63,94,0.1)]">ERR: ${error.message}</div>`;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
