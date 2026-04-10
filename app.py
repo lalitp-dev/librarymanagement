@@ -4,7 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 app = Flask(__name__)
 
 # Update 'your_username' and 'your_password' with your PostgreSQL credentials
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:lalit@localhost/library_db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:lalit1@localhost/library_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -54,7 +54,28 @@ def return_book(book_id):
     book.is_borrowed = False
     db.session.commit()
     return jsonify({"message": f"You returned '{book.title}'."})
+# Add this endpoint to app.py
+@app.route('/books/<int:book_id>', methods=['GET'])
+def get_book(book_id):
+    book = Book.query.get(book_id)
+    if not book:
+        return jsonify({"message": "Book not found!"}), 404
+    return jsonify({"id": book.id, "title": book.title, "author": book.author, "is_borrowed": book.is_borrowed})
 
+
+@app.route('/books/<int:book_id>', methods=['DELETE'])
+def remove_book(book_id):
+    book = Book.query.get(book_id)
+    if not book:
+        return jsonify({"message": "Book not found!"}), 404
+    
+    # Safety constraint: Don't delete a book that is currently out!
+    if book.is_borrowed:
+        return jsonify({"message": "Cannot delete a book that is currently borrowed!"}), 400
+    
+    db.session.delete(book)
+    db.session.commit()
+    return jsonify({"message": f"'{book.title}' has been permanently removed."})
 if __name__ == '__main__':
     with app.app_context():
         db.create_all() # Automatically creates the tables if they don't exist
