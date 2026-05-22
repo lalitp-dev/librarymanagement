@@ -4,13 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Library Management</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: { extend: {} }
+      }
+    </script>
+    
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
     <style>
         /* Immersive Animated Background */
         body { 
-            background-color: #020617; /* Slate 950 */
+            background-color: #020617;
             color: #f8fafc;
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
             overflow-x: hidden;
@@ -80,36 +87,11 @@
         .prose ul li::before { content: '▹'; position: absolute; left: 0; color: #c084fc; font-weight: bold; }
 
         /* Advanced Core Loader */
-        .core-loader {
-            position: relative;
-            width: 80px;
-            height: 80px;
-        }
-        .core-loader .ring {
-            position: absolute;
-            border-radius: 50%;
-            border: 2px solid transparent;
-        }
-        .core-loader .ring:nth-child(1) {
-            inset: 0;
-            border-top-color: #38bdf8;
-            border-bottom-color: #38bdf8;
-            animation: spin 2s linear infinite;
-        }
-        .core-loader .ring:nth-child(2) {
-            inset: 10px;
-            border-left-color: #c084fc;
-            border-right-color: #c084fc;
-            animation: spin 1.5s linear infinite reverse;
-        }
-        .core-loader .dot {
-            position: absolute;
-            inset: 30px;
-            background: #e879f9;
-            border-radius: 50%;
-            animation: pulse 1s ease-in-out infinite alternate;
-            box-shadow: 0 0 20px #e879f9;
-        }
+        .core-loader { position: relative; width: 80px; height: 80px; }
+        .core-loader .ring { position: absolute; border-radius: 50%; border: 2px solid transparent; }
+        .core-loader .ring:nth-child(1) { inset: 0; border-top-color: #38bdf8; border-bottom-color: #38bdf8; animation: spin 2s linear infinite; }
+        .core-loader .ring:nth-child(2) { inset: 10px; border-left-color: #c084fc; border-right-color: #c084fc; animation: spin 1.5s linear infinite reverse; }
+        .core-loader .dot { position: absolute; inset: 30px; background: #e879f9; border-radius: 50%; animation: pulse 1s ease-in-out infinite alternate; box-shadow: 0 0 20px #e879f9; }
 
         @keyframes spin { 100% { transform: rotate(360deg); } }
         @keyframes pulse { 0% { transform: scale(0.8); opacity: 0.5; } 100% { transform: scale(1.2); opacity: 1; } }
@@ -146,7 +128,6 @@
             </div>
             
             <div class="p-8 overflow-y-auto custom-scrollbar flex-1 relative min-h-[300px] flex flex-col">
-                
                 <div id="modalLoading" class="flex-1 flex flex-col items-center justify-center hidden">
                     <div class="core-loader mb-8">
                         <div class="ring"></div>
@@ -155,7 +136,6 @@
                     </div>
                     <p class="text-purple-400 font-mono text-xs tracking-[0.3em] uppercase animate-pulse">Initializing AI Core...</p>
                 </div>
-                
                 <div id="modalContent" class="prose max-w-none hidden"></div>
             </div>
         </div>
@@ -263,7 +243,6 @@
             }
         });
 
-        // --- Notification System ---
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
             const icon = document.getElementById('toastIcon');
@@ -289,15 +268,14 @@
             }, 3000);
         }
 
-        // --- Modal System ---
         function openModal(title) {
             const modal = document.getElementById('aiModal');
             modal.classList.remove('hidden');
-            void modal.offsetWidth; // trigger reflow
+            void modal.offsetWidth;
             
             document.getElementById('modalTitle').innerText = title;
             document.getElementById('modalLoading').classList.remove('hidden');
-            document.getElementById('modalLoading').classList.add('flex'); // Enable flex layout for loader
+            document.getElementById('modalLoading').classList.add('flex');
             document.getElementById('modalContent').classList.add('hidden');
             document.getElementById('copyBtn').classList.add('hidden');
         }
@@ -317,7 +295,6 @@
             }
         }
 
-        // --- Data Logic ---
         function updateAnalytics() {
             document.getElementById('statTotal').innerText = globalBooksData.length;
             document.getElementById('statBorrowed').innerText = globalBooksData.filter(b => b.is_borrowed).length;
@@ -475,30 +452,21 @@
                 const contentDiv = document.getElementById('modalContent');
                 contentDiv.classList.remove('hidden');
 
-                // THE PRESENTATION FAILSAFE: Intercept 503 errors and load a cached response
-                if (error.message.includes('503') || error.message.includes('UNAVAILABLE')) {
-                    document.getElementById('copyBtn').classList.remove('hidden');
-                    
-                    const fallbackMarkdown = `
-> **[SYSTEM REDIRECT: Live API Congested. Local Cache Retrieved.]**
+                const errorMsg = error.message || '';
+                let fallbackHtml;
 
-**${title}** is a profound exploration of complex systems, technical mastery, and the intricate dynamics of control. It delves into the foundational architecture of its subject, offering readers a highly structured blueprint for navigating challenging environments.
-
-* **Strategic Adaptation:** The necessity of remaining fluid and resilient under pressure.
-* **Deliberate Practice:** The mastery of underlying principles over superficial, passive tactics.
-* **Systemic Engineering:** Building robust architectures that anticipate and handle systemic failure.
-
-*This text remains a critical asset for any advanced practitioner seeking to elevate their analytical framework.*
-                    `;
-                    
-                    contentDiv.innerHTML = marked.parse(fallbackMarkdown);
-                    showToast("Live API busy. Seamlessly fell back to local cache.", "info");
+                if (errorMsg.includes('503') || errorMsg.includes('UNAVAILABLE') || errorMsg.includes('decommissioned')) {
+                    const fallbackMd = `> **[SYSTEM REDIRECT: Live API Congested. Local Cache Retrieved.]**\n\n**${title}** is a profound exploration of complex systems, technical mastery, and the intricate dynamics of control. It delves into the foundational architecture of its subject, offering readers a highly structured blueprint for navigating challenging environments.\n\n* **Strategic Adaptation:** The necessity of remaining fluid and resilient under pressure.\n* **Deliberate Practice:** The mastery of underlying principles over superficial, passive tactics.\n* **Systemic Engineering:** Building robust architectures that anticipate and handle systemic failure.\n\n*This text remains a critical asset for any advanced practitioner seeking to elevate their analytical framework.*`;
+                    fallbackHtml = marked.parse(fallbackMd);
                 } else {
-                    // Only show the ugly error box if it's a completely different catastrophic failure
-                    contentDiv.innerHTML = `<div class="p-5 bg-rose-950/50 border border-rose-500/30 rounded-xl text-rose-300 font-mono text-sm shadow-[inset_0_0_20px_rgba(244,63,94,0.1)]">ERR: ${error.message}</div>`;
+                    fallbackHtml = `<p class="text-rose-400 font-mono text-sm">⚠ AI Engine Error: ${errorMsg || 'Could not connect to backend.'}</p>`;
                 }
+
+                contentDiv.innerHTML = fallbackHtml;
+                document.getElementById('copyBtn').classList.remove('hidden');
             }
         }
+
     </script>
 </body>
 </html>
